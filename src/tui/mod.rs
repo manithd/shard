@@ -78,7 +78,10 @@ pub fn run_tui(mut state: TuiState) -> anyhow::Result<()> {
                     KeyCode::Char('a') => state.select_all(true),
                     KeyCode::Char('n') => state.select_all(false),
                     KeyCode::Char('s') if state.processing => state.stop_conversion(),
-                    _ => {}
+                    _ => {
+                        // Log unknown key for debugging
+                        state.log_lines.push(format!("unknown key: {key:?}"));
+                    }
                 }
             }
         }
