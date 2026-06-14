@@ -267,6 +267,18 @@ fn run_conversion(
 ) -> anyhow::Result<()> {
     let total = scanned.len();
 
+    // Collect original file sizes before passing ownership.
+    let file_sizes: Vec<(String, u64)> = scanned
+        .iter()
+        .map(|f| {
+            let name = f.relative_path.display().to_string();
+            let size = std::fs::metadata(&f.full_path)
+                .map(|m| m.len())
+                .unwrap_or(0);
+            (name, size)
+        })
+        .collect();
+
     // Create renderer.
     #[cfg(feature = "pdfium")]
     let renderer: Arc<dyn PdfRenderer> = match pdf2webp::converter::PdfiumRenderer::new() {
@@ -422,5 +434,89 @@ fn run_conversion(
     );
     println!();
 
+    // ── Size comparison table ───────────────────────────────
+    if ok > 0 {
+        println!("  {}", style("Size comparison:").bold().dim());
+        println!(
+            "  {:<50} {:>10} {:>10} {:>10}",
+            style("File").dim(),
+            style("PDF").dim(),
+            style("WebP").dim(),
+            style("Ratio").dim()
+        );
+        println!("  {}", style("─".repeat(82)).dim());
+
+        let mut total_pdf: u64 = 0;
+        let mut total_webp: u64 = 0;
+
+        for (rel_path, pdf_size) in &file_sizes {
+            let doc_dir = pdf2webp::mirror::mirror_doc_dir(
+                &config.output_path,
+                std::path::Path::new(rel_path),
+            );
+            let webp_size: u64 = std::fs::read_dir(&doc_dir)
+                .ok()
+                .map(|entries| {
+                    entries
+                        .filter_map(|e| e.ok())
+                        .filter(|e| e.path().extension().is_some_and(|ext| ext == "webp"))
+                        .filter_map(|e| e.metadata().ok())
+                        .map(|m| m.len())
+                        .sum()
+                })
+                .unwrap_or(0);
+
+            // Shorten the filename if needed.
+            let label = if rel_path.len() > 47 {
+                format!("…{}", &rel_path[rel_path.len().saturating_sub(46)..])
+            } else {
+                rel_path.clone()
+            };
+
+            let ratio = if *pdf_size > 0 {
+                webp_size as f64 / *pdf_size as f64
+            } else {
+                0.0
+            };
+
+            println!(
+                "  {:<50} {:>8} {:>8} {:>7.1}%",
+                style(label).dim(),
+                format_size(*pdf_size),
+                format_size(webp_size),
+                ratio * 100.0
+            );
+
+            total_pdf += pdf_size;
+            total_webp += webp_size;
+        }
+
+        let total_ratio = if total_pdf > 0 {
+            total_webp as f64 / total_pdf as f64
+        } else {
+            0.0
+        };
+        println!("  {}", style("─".repeat(82)).dim());
+        println!(
+            "  {:<50} {:>8} {:>8} {:>7.1}%",
+            style("Total").bold(),
+            format_size(total_pdf),
+            format_size(total_webp),
+            total_ratio * 100.0
+        );
+        println!();
+    }
+
     Ok(())
+}
+
+/// Format bytes as a human-readable string (KB / MB).
+fn format_size(bytes: u64) -> String {
+    if bytes >= 1024 * 1024 {
+        format!("{:.1} MB", bytes as f64 / (1024.0 * 1024.0))
+    } else if bytes >= 1024 {
+        format!("{:.0} KB", bytes as f64 / 1024.0)
+    } else {
+        format!("{bytes} B")
+    }
 }
