@@ -200,6 +200,9 @@ export component MainWindow inherits Window {
     in-out property <[FileItem]> file-model;
     in-out property <string> status-text: "Select source folder and scan for PDFs";
     in-out property <bool> show-dialog: false;
+    in-out property <bool> update-available: false;
+    in-out property <string> update-version: "";
+    in-out property <bool> updating: false;
     in-out property <bool> source-valid: source-path != "";
 
     in-out property <float> pct: total-files > 0 ? (processed-count + error-count + skipped-count) * 100.0 / total-files : 0.0;
@@ -212,6 +215,7 @@ export component MainWindow inherits Window {
     callback scan-source();
     callback toggle-all-files(bool);
     callback toggle-file(int);
+    callback apply-update();
 
     // ═══ ROOT: Sidebar + Main pane ═══════════════════════════
     HorizontalLayout {
@@ -637,6 +641,37 @@ export component MainWindow inherits Window {
             padding: 10px;
             spacing: 6px;
             horizontal-stretch: 1;
+
+            // ── Update banner ────────────────────────────────
+            if root.update-available: Rectangle {
+                background: #425744;
+                border-radius: 6px;
+                height: 36px;
+
+                HorizontalLayout {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    padding-top: 6px;
+                    padding-bottom: 6px;
+                    spacing: 8px;
+
+                    Text {
+                        text: root.updating ? "Updating to v" + root.update-version + "…" : "Update available: v" + root.update-version;
+                        color: #ffffff;
+                        font-size: 12px;
+                        font-weight: 600;
+                        horizontal-stretch: 1;
+                    }
+
+                    Button {
+                        text: "Update & Restart";
+                        enabled: !root.updating;
+                        clicked => {
+                            root.apply-update();
+                        }
+                    }
+                }
+            }
 
             // ── File list ────────────────────────────────────
             Rectangle {

@@ -45,6 +45,7 @@ impl App {
     pub fn setup(&self) {
         self.setup_callbacks();
         self.setup_poller();
+        self.setup_update_check();
     }
 
     fn setup_callbacks(&self) {
@@ -267,6 +268,18 @@ impl App {
             refresh_model(&win, &guard);
             win.set_selected_count(guard.iter().filter(|x| x.selected).count() as i32);
         });
+
+        // Apply update (from update banner)
+        let cf_stop = cf.clone();
+        self.window.on_apply_update(move || {
+            cf_stop.store(true, Ordering::Relaxed);
+            std::thread::spawn(move || {
+                log::info!("Starting update download and install...");
+                if let Err(e) = crate::updater::download_and_install() {
+                    log::error!("Update failed: {e}");
+                }
+            });
+        });
     }
 
     fn setup_poller(&self) {
@@ -411,5 +424,32 @@ impl App {
                     win.set_show_dialog(true);
                 }
             });
+    }
+
+    fn setup_update_check(&self) {
+        let w = self.window.as_weak();
+
+        std::thread::Builder::new()
+            .name("update-check".into())
+            .spawn(move || {
+                // Small delay so it doesn't compete with initial UI render.
+                std::thread::sleep(std::time::Duration::from_secs(3));
+
+                match crate::updater::check_for_update() {
+                    Ok(Some(info)) => {
+                        log::info!("Update available: v{}", info.version);
+                        let version = info.version.clone();
+                        let _ = slint::invoke_from_event_loop(move || {
+                            if let Some(win) = w.upgrade() {
+                                win.set_update_available(true);
+                                win.set_update_version(SharedString::from(version));
+                            }
+                        });
+                    }
+                    Ok(None) => log::info!("App is up to date"),
+                    Err(e) => log::warn!("Update check failed (non-fatal): {e}"),
+                }
+            })
+            .expect("Failed to spawn update-check thread");
     }
 }
