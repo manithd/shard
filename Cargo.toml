@@ -29,21 +29,21 @@ tempfile = "3.15"
 # WebP encoding via libwebp bindings
 webp = "0.1"
 
-# SVG post-processing (always required for SVG output path)
+# SVG post-processing
 usvg = { version = "0.44", default-features = false, features = ["text"] }
-
-# XML parsing for SVG background removal (transitive dep of usvg, pinned for API stability)
 roxmltree = "0.20"
 
-# PDFium rendering (optional - requires pdfium binary installed on system)
-pdfium-render = { version = "0.8", optional = true, default-features = false, features = ["bindings"] }
+# SSIMULACRA2 perceptual quality metric
 ssimulacra2 = "0.5.1"
-release-hub = "0.3"
-tokio = { version = "1.52.3", features = ["macros", "rt", "rt-multi-thread", "time"] }
-rustls = { version = "0.23.40", features = ["ring"] }
+
+# PDFium rendering (optional)
+pdfium-render = { version = "0.8", optional = true, default-features = false, features = ["bindings"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 core-foundation = "0.10"
+release-hub = "0.3"
+tokio = { version = "1.52.3", features = ["macros", "rt", "rt-multi-thread", "time"] }
+rustls = { version = "0.23.40", features = ["ring"] }
 
 [build-dependencies]
 slint-build = "1.9"
@@ -64,5 +64,4 @@ opt-level = 3
 
 [features]
 default = []
-# Enable pdfium-render backend (requires pdfium library on system)
 pdfium = ["dep:pdfium-render"]

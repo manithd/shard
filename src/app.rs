@@ -45,6 +45,7 @@ impl App {
     pub fn setup(&self) {
         self.setup_callbacks();
         self.setup_poller();
+        #[cfg(target_os = "macos")]
         self.setup_update_check();
     }
 
@@ -270,16 +271,19 @@ impl App {
         });
 
         // Apply update (from update banner)
-        let cf_stop = cf.clone();
-        self.window.on_apply_update(move || {
-            cf_stop.store(true, Ordering::Relaxed);
-            std::thread::spawn(move || {
-                log::info!("Starting update download and install...");
-                if let Err(e) = crate::updater::download_and_install() {
-                    log::error!("Update failed: {e}");
-                }
+        #[cfg(target_os = "macos")]
+        {
+            let cf_stop = cf.clone();
+            self.window.on_apply_update(move || {
+                cf_stop.store(true, Ordering::Relaxed);
+                std::thread::spawn(move || {
+                    log::info!("Starting update download and install...");
+                    if let Err(e) = crate::updater::download_and_install() {
+                        log::error!("Update failed: {e}");
+                    }
+                });
             });
-        });
+        }
     }
 
     fn setup_poller(&self) {
@@ -426,6 +430,7 @@ impl App {
             });
     }
 
+    #[cfg(target_os = "macos")]
     fn setup_update_check(&self) {
         let w = self.window.as_weak();
 

@@ -64,10 +64,9 @@ pub fn check_disk_space(
     avg_pages: u32,
     dpi: u32,
 ) -> Result<(), AppError> {
-    let estimated = estimate_required_bytes(file_count, avg_pages, dpi);
-
     #[cfg(unix)]
     {
+        let estimated = estimate_required_bytes(file_count, avg_pages, dpi);
         use fs2::available_space;
         match available_space(output_path) {
             Ok(available) if available < estimated => {
