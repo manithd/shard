@@ -95,12 +95,16 @@ fn main() -> anyhow::Result<()> {
         println!("  Ready to convert:");
         println!("    From:  {}", style(config.source_path.display()).cyan());
         println!("    To:    {}", style(config.output_path.display()).cyan());
-        println!("    Files: {} PDF(s) found", total);
         println!("    DPI:   {}", config.dpi);
+        println!("    Files:");
+        for f in &scanned {
+            println!("      • {}", f.relative_path.display());
+        }
         println!();
         let proceed = Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("  Start conversion?")
             .default(true)
+            .wait_for_newline(true)
             .interact()?;
         if !proceed {
             println!("  Cancelled. Nothing was converted.");
@@ -164,10 +168,13 @@ fn run_wizard(cli: &Cli) -> anyhow::Result<AppConfig> {
     // Quick scan.
     let scanned = mirror::scan_pdf_files(&config.source_path)?;
     println!(
-        "    {} Found {} PDF file(s).",
+        "    {} Found {} PDF file(s):",
         style("✓").green(),
         scanned.len()
     );
+    for f in &scanned {
+        println!("       • {}", f.relative_path.display());
+    }
     if scanned.is_empty() {
         println!(
             "    {} No PDFs found. Double-check the path.",
@@ -205,9 +212,10 @@ fn run_wizard(cli: &Cli) -> anyhow::Result<AppConfig> {
     let preset = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("  Choose a quality level")
         .items(&[
-            "Balanced (recommended) — sharp on screens, smaller files",
-            "Maximum sharpness — largest files, best for zooming in",
-            "Smallest files — good for quick previews, slightly softer",
+            "150 DPI (Medium) — balanced size and quality",
+            "200 DPI (High) — sharpest output, larger files",
+            "90 DPI (Low) — smallest files, slightly softer",
+            "Custom DPI — enter your own value (50-300)",
         ])
         .default(0)
         .interact()?;
@@ -227,6 +235,23 @@ fn run_wizard(cli: &Cli) -> anyhow::Result<AppConfig> {
             config.dpi = 90;
             config.adaptive_encoding = true;
             config.quality_target = 75.0;
+        }
+        3 => {
+            let input: String = Input::with_theme(&ColorfulTheme::default())
+                .with_prompt("  Enter DPI (50-300)")
+                .default("150".into())
+                .validate_with(|input: &String| -> Result<(), &str> {
+                    let v: u32 = input.trim().parse().map_err(|_| "Please enter a number")?;
+                    if v >= 50 && v <= 300 {
+                        Ok(())
+                    } else {
+                        Err("DPI must be between 50 and 300")
+                    }
+                })
+                .interact_text()?;
+            config.dpi = input.trim().parse().unwrap_or(150);
+            config.adaptive_encoding = true;
+            config.quality_target = 85.0;
         }
         _ => unreachable!(),
     }
@@ -298,13 +323,17 @@ fn run_conversion(
                 overall.set_length(total as u64);
             }
             worker::ProgressUpdate::Processing { relative_path, .. } => {
+                let fname = std::path::Path::new(&relative_path)
+                    .file_name()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or_else(|| relative_path.clone());
                 let pb = multi.insert_before(&overall, ProgressBar::new(0));
                 pb.set_style(
                     ProgressStyle::with_template("    {prefix} [{bar:16.green/black}] {msg}")
                         .unwrap()
                         .progress_chars("█▉▊▋▌▍▎▏ "),
                 );
-                pb.set_prefix(relative_path.clone());
+                pb.set_prefix(fname.clone());
                 pb.set_message("...");
                 file_bars.insert(relative_path, pb);
             }
@@ -344,6 +373,10 @@ fn run_conversion(
                 error_message,
                 ..
             } => {
+                let fname = std::path::Path::new(&relative_path)
+                    .file_name()
+                    .map(|s| s.to_string_lossy().to_string())
+                    .unwrap_or_else(|| relative_path.clone());
                 if let Some(pb) = file_bars.remove(&relative_path) {
                     pb.finish_with_message(style("✗ error").red().to_string());
                 }
@@ -351,7 +384,7 @@ fn run_conversion(
                     .println(format!(
                         "  {} {}: {}",
                         style("✗").red(),
-                        relative_path,
+                        fname,
                         error_message
                     ))
                     .ok();
