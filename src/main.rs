@@ -1,4 +1,4 @@
-//! PDF → WebP Converter (CLI)
+//! High-performance PDF to WebP/SVG converter.
 //!
 //! Run with no arguments for a guided, interactive setup.
 //! Run with --help to see all options for repeat/scripted use.
@@ -12,16 +12,16 @@ use console::style;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, Select};
 use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
 
-use pdf2webp::config::{AppConfig, OutputFormat};
-use pdf2webp::converter::{PdfRenderer, PopplerRenderer};
-use pdf2webp::mirror;
-use pdf2webp::worker;
+use shard::config::{AppConfig, OutputFormat};
+use shard::converter::{PdfRenderer, PopplerRenderer};
+use shard::mirror;
+use shard::worker;
 
 /// Convert a folder of PDFs into optimized WebP images.
 ///
 /// Run with no options for a step-by-step guided setup.
 #[derive(Parser, Debug)]
-#[command(name = "pdf2webp", version, about, long_about = None)]
+#[command(name = "shard", version, about, long_about = None)]
 struct Cli {
     /// Folder containing PDF files (searched recursively)
     #[arg(short, long)]
@@ -50,7 +50,7 @@ fn main() -> anyhow::Result<()> {
     println!();
     println!(
         "  {} {}",
-        style("PDF → WebP Converter").bold().cyan(),
+        style("shard — PDF → WebP Converter").bold().cyan(),
         style(env!("CARGO_PKG_VERSION")).dim()
     );
     println!("  {}", style("─────────────────────").cyan());
@@ -269,7 +269,7 @@ fn run_wizard(cli: &Cli) -> anyhow::Result<AppConfig> {
 
 fn run_conversion(
     config: AppConfig,
-    scanned: Vec<pdf2webp::mirror::ScannedFile>,
+    scanned: Vec<shard::mirror::ScannedFile>,
 ) -> anyhow::Result<()> {
     let total = scanned.len();
 
@@ -287,7 +287,7 @@ fn run_conversion(
 
     // Create renderer.
     #[cfg(feature = "pdfium")]
-    let renderer: Arc<dyn PdfRenderer> = match pdf2webp::converter::PdfiumRenderer::new() {
+    let renderer: Arc<dyn PdfRenderer> = match shard::converter::PdfiumRenderer::new() {
         Ok(r) => Arc::new(r),
         Err(_) => {
             println!(
@@ -456,10 +456,8 @@ fn run_conversion(
         let mut total_webp: u64 = 0;
 
         for (rel_path, pdf_size) in &file_sizes {
-            let doc_dir = pdf2webp::mirror::mirror_doc_dir(
-                &config.output_path,
-                std::path::Path::new(rel_path),
-            );
+            let doc_dir =
+                shard::mirror::mirror_doc_dir(&config.output_path, std::path::Path::new(rel_path));
             let webp_size: u64 = std::fs::read_dir(&doc_dir)
                 .ok()
                 .map(|entries| {

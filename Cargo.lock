@@ -998,32 +998,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
 
 [[package]]
-name = "pdf2webp"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "console",
- "dialoguer",
- "env_logger",
- "fs2",
- "image 0.25.10",
- "indicatif",
- "log",
- "pdfium-render",
- "rayon",
- "roxmltree",
- "serde",
- "serde_json",
- "ssimulacra2",
- "tempfile",
- "thiserror 2.0.18",
- "usvg",
- "walkdir",
- "webp",
-]
-
-[[package]]
 name = "pdfium-render"
 version = "0.8.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1301,6 +1275,32 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "shard"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "console",
+ "dialoguer",
+ "env_logger",
+ "fs2",
+ "image 0.25.10",
+ "indicatif",
+ "log",
+ "pdfium-render",
+ "rayon",
+ "roxmltree",
+ "serde",
+ "serde_json",
+ "ssimulacra2",
+ "tempfile",
+ "thiserror 2.0.18",
+ "usvg",
+ "walkdir",
+ "webp",
 ]
 
 [[package]]

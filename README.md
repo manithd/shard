@@ -1,24 +1,24 @@
-# pdf2webp
+# shard
 
 Convert PDF files to optimized WebP images — one image per page, preserving your folder structure.
 
 ## Install
 
 ```bash
-curl -fsSL https://github.com/manithd/PDF2WebP/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/manithd/shard/releases/latest/download/install.sh | sh
 ```
 
 ## Usage
 
 ```bash
 # Interactive wizard (no flags needed)
-pdf2webp
+shard
 
 # One-shot for scripting
-pdf2webp -s ./pdfs -o ./output -y
+shard -s ./pdfs -o ./output -y
 
 # All options
-pdf2webp --help
+shard --help
 ```
 
 ### What it does

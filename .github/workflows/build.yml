@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
 
 jobs:
   build:
@@ -11,12 +11,12 @@ jobs:
         include:
           - os: macos-14
             target: aarch64-apple-darwin
-            artifact: pdf2webp
-            launcher: Run-PDF2WebP.command
+            artifact: shard
+            launcher: Run-Shard.command
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact: pdf2webp.exe
-            launcher: Run-PDF2WebP.bat
+            artifact: shard.exe
+            launcher: Run-Shard.bat
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -31,5 +31,5 @@ jobs:
           cp ${{ matrix.launcher }} release/
       - uses: actions/upload-artifact@v4
         with:
-          name: pdf2webp-${{ matrix.target }}
+          name: shard-${{ matrix.target }}
           path: release/

@@ -1,9 +1,9 @@
 #!/bin/bash
-# pdf2webp installer — downloads the latest release and places it on PATH.
+# shard installer — downloads the latest release and places it on PATH.
 set -e
 
-REPO="manithd/PDF2WebP"
-BIN_NAME="pdf2webp"
+REPO="manithd/shard"
+BIN_NAME="shard"
 INSTALL_DIR="/usr/local/bin"
 
 # Detect platform
