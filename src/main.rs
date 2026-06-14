@@ -98,7 +98,13 @@ fn main() -> anyhow::Result<()> {
         println!("    DPI:   {}", config.dpi);
         println!("    Files:");
         for f in &scanned {
-            println!("      • {}", f.relative_path.display());
+            let rel = f.relative_path.display().to_string();
+            let label = if rel.len() > 55 {
+                format!("…{}", &rel[rel.len().saturating_sub(54)..])
+            } else {
+                rel
+            };
+            println!("      • {}", style(label).dim());
         }
         println!();
         let proceed = Confirm::with_theme(&ColorfulTheme::default())
@@ -442,7 +448,7 @@ fn run_conversion(
             style("File").dim(),
             style("PDF").dim(),
             style("WebP").dim(),
-            style("Ratio").dim()
+            style("Saved").dim()
         );
         println!("  {}", style("─".repeat(82)).dim());
 
@@ -473,8 +479,8 @@ fn run_conversion(
                 rel_path.clone()
             };
 
-            let ratio = if *pdf_size > 0 {
-                webp_size as f64 / *pdf_size as f64
+            let saved = if *pdf_size > 0 {
+                (1.0 - webp_size as f64 / *pdf_size as f64) * 100.0
             } else {
                 0.0
             };
@@ -484,15 +490,15 @@ fn run_conversion(
                 style(label).dim(),
                 format_size(*pdf_size),
                 format_size(webp_size),
-                ratio * 100.0
+                saved
             );
 
             total_pdf += pdf_size;
             total_webp += webp_size;
         }
 
-        let total_ratio = if total_pdf > 0 {
-            total_webp as f64 / total_pdf as f64
+        let total_saved = if total_pdf > 0 {
+            (1.0 - total_webp as f64 / total_pdf as f64) * 100.0
         } else {
             0.0
         };
@@ -502,7 +508,7 @@ fn run_conversion(
             style("Total").bold(),
             format_size(total_pdf),
             format_size(total_webp),
-            total_ratio * 100.0
+            total_saved
         );
         println!();
     }
